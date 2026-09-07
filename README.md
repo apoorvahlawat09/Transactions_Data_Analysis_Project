@@ -6,6 +6,7 @@ This is an end-to-end project analysing transactions data from a bank to uncover
 • Leveraged SQL (GROUP BY, JOINs, CASE WHEN, subqueries) and Power BI (DAX, heatmaps, scatter plots, KPI cards) to execute RFV and temporal trend analysis.
 
 • Answered key business Qs such as:
+
 Which customer wealth segments generate the most transaction activity, and where do we see high-balance customers with relatively high transaction velocity/spend?
 
 Which high-value customers show declining engagement and represent revenue churn risk?
