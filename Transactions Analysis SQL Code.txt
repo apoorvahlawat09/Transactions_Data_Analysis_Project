@@ -1,0 +1,603 @@
+Project: Transactions_Data_Analysis
+Dialect/Syntax: sqliteonline.com (Online Compiler)
+
+-----------------------------------------------------
+Step 1 - Data Normalisation
+-----------------------------------------------------
+SELECT *
+FROM bank_transactions
+SELECT
+    COUNT(*) AS TotalRows,
+    COUNT(DISTINCT TransactionID) AS UniqueTransactions
+FROM bank_transactions;
+SELECT
+    TransactionID,
+    COUNT(*) AS NumberOfRows
+FROM bank_transactions
+GROUP BY TransactionID
+HAVING COUNT(*) > 1;
+SELECT
+    SUM(CASE WHEN TransactionID IS NULL THEN 1 ELSE 0 END) AS MissingTransactionID,
+    SUM(CASE WHEN CustomerID IS NULL THEN 1 ELSE 0 END) AS MissingCustomerID,
+    SUM(CASE WHEN CustomerDOB IS NULL THEN 1 ELSE 0 END) AS MissingDOB,
+    SUM(CASE WHEN CustGender IS NULL THEN 1 ELSE 0 END) AS MissingGender,
+    SUM(CASE WHEN CustLocation IS NULL THEN 1 ELSE 0 END) AS MissingLocation,
+    SUM(CASE WHEN CustAccountBalance IS NULL THEN 1 ELSE 0 END) AS MissingBalance,
+    SUM(CASE WHEN TransactionDate IS NULL THEN 1 ELSE 0 END) AS MissingDate,
+    SUM(CASE WHEN TransactionTime IS NULL THEN 1 ELSE 0 END) AS MissingTime,
+    SUM(CASE WHEN "TransactionAmount (INR)" IS NULL THEN 1 ELSE 0 END) AS MissingAmount
+FROM bank_transactions;
+SELECT
+    SUM(CASE WHEN TRIM(CustomerDOB) = '' THEN 1 ELSE 0 END) AS BlankDOB,
+    SUM(CASE WHEN TRIM(CustGender) = '' THEN 1 ELSE 0 END) AS BlankGender,
+    SUM(CASE WHEN TRIM(CustLocation) = '' THEN 1 ELSE 0 END) AS BlankLocation
+FROM bank_transactions;
+SELECT
+    CustGender,
+    COUNT(*) AS NumberOfTransactions
+FROM bank_transactions
+GROUP BY CustGender
+ORDER BY NumberOfTransactions DESC;
+SELECT
+    CustLocation,
+    COUNT(*) AS NumberOfTransactions
+FROM bank_transactions
+GROUP BY CustLocation
+ORDER BY NumberOfTransactions DESC
+LIMIT 30;
+SELECT
+    MIN(CustAccountBalance) AS MinimumBalance,
+    MAX(CustAccountBalance) AS MaximumBalance,
+    AVG(CustAccountBalance) AS AverageBalance,
+
+    MIN("TransactionAmount (INR)") AS MinimumTransaction,
+    MAX("TransactionAmount (INR)") AS MaximumTransaction,
+    AVG("TransactionAmount (INR)") AS AverageTransaction
+FROM bank_transactions;
+
+CREATE TABLE transactions_clean AS
+
+SELECT
+    TRIM(TransactionID) AS TransactionID,
+
+    TRIM(CustomerID) AS CustomerID,
+
+    TRIM(CustomerDOB) AS CustomerDOB,
+
+    UPPER(TRIM(CustGender)) AS CustGender,
+
+    UPPER(TRIM(CustLocation)) AS CustLocation,
+
+    CAST(CustAccountBalance AS REAL) AS CustAccountBalance,
+
+    TransactionDate,
+
+    CAST(TransactionTime AS INTEGER) AS TransactionTime,
+
+    CAST("TransactionAmount (INR)" AS REAL)
+        AS TransactionAmount
+
+FROM bank_transactions;
+SELECT *
+FROM transactions_clean
+LIMIT 10;
+SELECT
+    TransactionDate,
+
+    '20' || substr(TransactionDate, 7, 2)
+    || '-' ||
+    substr(TransactionDate, 4, 2)
+    || '-' ||
+    substr(TransactionDate, 1, 2)
+    AS CleanDate
+
+FROM transactions_clean
+LIMIT 10;
+DROP TABLE IF EXISTS transactions_clean;
+
+CREATE TABLE transactions_clean AS
+
+SELECT
+    NULLIF(TRIM(TransactionID), '') AS TransactionID,
+
+    NULLIF(TRIM(CustomerID), '') AS CustomerID,
+
+    NULLIF(TRIM(CustomerDOB), '') AS CustomerDOB,
+
+    NULLIF(UPPER(TRIM(CustGender)), '') AS CustGender,
+
+    NULLIF(UPPER(TRIM(CustLocation)), '') AS CustLocation,
+
+    CAST(CustAccountBalance AS REAL) AS CustAccountBalance,
+
+    CASE
+        WHEN TransactionDate IS NOT NULL
+        THEN
+            '20' || substr(TRIM(TransactionDate), 7, 2)
+            || '-' ||
+            substr(TRIM(TransactionDate), 4, 2)
+            || '-' ||
+            substr(TRIM(TransactionDate), 1, 2)
+    END AS TransactionDate,
+
+    CAST(TransactionTime AS INTEGER) AS TransactionTime,
+
+    CAST("TransactionAmount (INR)" AS REAL)
+        AS TransactionAmount
+
+FROM bank_transactions;
+SELECT
+    MIN(TransactionDate) AS FirstTransactionDate,
+    MAX(TransactionDate) AS LastTransactionDate
+FROM transactions_clean;
+SELECT
+    TransactionDate,
+    COUNT(*) AS Transactions
+FROM transactions_clean
+GROUP BY TransactionDate
+ORDER BY TransactionDate
+LIMIT 10;
+SELECT
+    CustomerDOB,
+    COUNT(*) AS NumberOfRecords
+FROM transactions_clean
+GROUP BY CustomerDOB
+ORDER BY CustomerDOB
+LIMIT 20;
+SELECT
+    COUNT(*) AS TotalRows,
+
+    COUNT(DISTINCT TransactionID) AS UniqueTransactions,
+
+    COUNT(DISTINCT CustomerID) AS UniqueCustomers,
+
+    SUM(
+        CASE WHEN TransactionID IS NULL THEN 1 ELSE 0 END
+    ) AS MissingTransactionID,
+
+    SUM(
+        CASE WHEN CustomerID IS NULL THEN 1 ELSE 0 END
+    ) AS MissingCustomerID,
+
+    SUM(
+        CASE WHEN TransactionDate IS NULL THEN 1 ELSE 0 END
+    ) AS MissingDate,
+
+    SUM(
+        CASE WHEN TransactionAmount IS NULL THEN 1 ELSE 0 END
+    ) AS MissingAmount,
+
+    SUM(
+        CASE WHEN CustAccountBalance IS NULL THEN 1 ELSE 0 END
+    ) AS MissingBalance
+
+FROM transactions_clean;
+
+------------------------------------------------------
+1. Customer Share-of-Wallet & Wealth Segmentation
+----------------------------------------------------
+SELECT
+    CustomerID,
+    MAX(CustAccountBalance) AS AccountBalance,
+    COUNT(TransactionID) AS TransactionCount,
+    SUM(TransactionAmount) AS TotalSpend
+FROM transactions_clean
+GROUP BY CustomerID
+ORDER BY TotalSpend DESC
+LIMIT 10;
+SELECT
+    CustomerID,
+
+    MAX(CustAccountBalance) AS AccountBalance,
+
+    CASE
+        WHEN MAX(CustAccountBalance) < 25000
+            THEN 'Low Balance'
+
+        WHEN MAX(CustAccountBalance) < 100000
+            THEN 'Medium Balance'
+
+        WHEN MAX(CustAccountBalance) < 1000000
+            THEN 'High Balance'
+
+        ELSE 'Very High Balance'
+    END AS BalanceTier,
+
+    COUNT(TransactionID) AS TransactionCount,
+
+    SUM(TransactionAmount) AS TotalSpend
+
+FROM transactions_clean
+
+GROUP BY CustomerID;
+SELECT
+    BalanceTier,
+    COUNT(CustomerID) AS CustomerCount,
+    SUM(TransactionCount) AS TotalTransactions,
+    SUM(TotalSpend) AS TotalSpend
+FROM
+(
+    SELECT
+        CustomerID,
+
+        CASE
+            WHEN MAX(CustAccountBalance) < 25000
+                THEN 'Low Balance'
+            WHEN MAX(CustAccountBalance) < 100000
+                THEN 'Medium Balance'
+            WHEN MAX(CustAccountBalance) < 1000000
+                THEN 'High Balance'
+            ELSE 'Very High Balance'
+        END AS BalanceTier,
+
+        COUNT(TransactionID) AS TransactionCount,
+        SUM(TransactionAmount) AS TotalSpend
+
+    FROM transactions_clean
+    GROUP BY CustomerID
+)
+GROUP BY BalanceTier;
+
+---------------------------------------------------
+2. Demographic & Geographic Growth Hotspots
+---------------------------------------------------
+SELECT
+    CustLocation,
+    COUNT(TransactionID) AS TransactionCount,
+    SUM(TransactionAmount) AS TotalSpend
+FROM transactions_clean
+GROUP BY CustLocation
+ORDER BY TotalSpend DESC
+LIMIT 10;
+SELECT
+    CustLocation,
+    CustGender,
+    COUNT(TransactionID) AS TransactionCount,
+    SUM(TransactionAmount) AS TotalSpend
+FROM transactions_clean
+GROUP BY
+    CustLocation,
+    CustGender
+ORDER BY TotalSpend DESC
+LIMIT 20;
+
+SELECT
+    CustomerID,
+
+    CASE
+
+        WHEN
+            (
+                2026 -
+                CASE
+                    WHEN CAST(substr(CustomerDOB, 7, 2) AS INTEGER) >= 25
+                        THEN 1900 + CAST(substr(CustomerDOB, 7, 2) AS INTEGER)
+                    ELSE 2000 + CAST(substr(CustomerDOB, 7, 2) AS INTEGER)
+                END
+            ) < 25
+
+        THEN '<25'
+
+        WHEN
+            (
+                2026 -
+                CASE
+                    WHEN CAST(substr(CustomerDOB, 7, 2) AS INTEGER) >= 25
+                        THEN 1900 + CAST(substr(CustomerDOB, 7, 2) AS INTEGER)
+                    ELSE 2000 + CAST(substr(CustomerDOB, 7, 2) AS INTEGER)
+                END
+            ) BETWEEN 25 AND 35
+
+        THEN '25-35'
+
+        WHEN
+            (
+                2026 -
+                CASE
+                    WHEN CAST(substr(CustomerDOB, 7, 2) AS INTEGER) >= 25
+                        THEN 1900 + CAST(substr(CustomerDOB, 7, 2) AS INTEGER)
+                    ELSE 2000 + CAST(substr(CustomerDOB, 7, 2) AS INTEGER)
+                END
+            ) BETWEEN 36 AND 50
+
+        THEN '36-50'
+
+        ELSE '50+'
+
+    END AS AgeTier
+
+FROM transactions_clean;
+
+--------------------------------------------------
+3. Customer Retention & Churn — RFV
+-------------------------------------------------
+SELECT
+    CustomerID,
+
+    COUNT(TransactionID) AS Frequency,
+
+    SUM(TransactionAmount) AS MonetaryValue
+
+FROM transactions_clean
+
+GROUP BY CustomerID
+ORDER BY MonetaryValue DESC
+LIMIT 10;
+
+SELECT
+    CustomerID,
+
+    MAX(TransactionDate) AS LastTransactionDate,
+
+    COUNT(TransactionID) AS Frequency,
+
+    SUM(TransactionAmount) AS MonetaryValue
+
+FROM transactions_clean
+
+GROUP BY CustomerID;
+
+SELECT
+    CustomerID,
+
+    MAX(TransactionDate) AS LastTransactionDate,
+
+    CAST(
+        julianday('2016-09-01')
+        - julianday(MAX(TransactionDate))
+        AS INTEGER
+    ) AS RecencyDays,
+
+    COUNT(TransactionID) AS Frequency,
+
+    SUM(TransactionAmount) AS MonetaryValue
+
+FROM transactions_clean
+
+GROUP BY CustomerID;
+
+SELECT
+    CustomerID,
+
+    MAX(TransactionDate) AS LastTransactionDate,
+
+    CAST(
+        julianday('2016-09-01')
+        - julianday(MAX(TransactionDate))
+        AS INTEGER
+    ) AS RecencyDays,
+
+    COUNT(TransactionID) AS Frequency,
+
+    SUM(TransactionAmount) AS MonetaryValue,
+
+    CASE
+
+        WHEN
+            julianday('2016-09-01')
+            - julianday(MAX(TransactionDate)) > 60
+            AND SUM(TransactionAmount) > 100000
+        THEN 'High Churn Risk'
+
+        WHEN
+            julianday('2016-09-01')
+            - julianday(MAX(TransactionDate)) > 30
+            AND SUM(TransactionAmount) > 50000
+        THEN 'Watchlist'
+
+        ELSE 'Normal'
+
+    END AS CustomerRisk
+
+FROM transactions_clean
+
+GROUP BY CustomerID;
+
+----------------------------------------------------
+4. Infrastructure Load & Temporal Behavior
+--------------------------------------------------
+SELECT
+    TransactionID,
+    TransactionTime,
+
+    CAST(TransactionTime / 10000 AS INTEGER)
+        AS TransactionHour
+
+FROM transactions_clean
+
+LIMIT 20;
+
+SELECT
+
+    CAST(TransactionTime / 10000 AS INTEGER)
+        AS TransactionHour,
+
+    COUNT(TransactionID) AS TransactionCount,
+
+    SUM(TransactionAmount) AS TransactionValue
+
+FROM transactions_clean
+
+GROUP BY TransactionHour
+
+ORDER BY TransactionHour;
+
+SELECT
+
+    strftime('%d', TransactionDate) AS DayOfMonth,
+
+    COUNT(TransactionID) AS TransactionCount,
+
+    SUM(TransactionAmount) AS TransactionValue
+
+FROM transactions_clean
+
+GROUP BY DayOfMonth
+
+ORDER BY DayOfMonth;
+
+SELECT
+
+    strftime('%w', TransactionDate) AS DayOfWeek,
+
+    CAST(TransactionTime / 10000 AS INTEGER)
+        AS TransactionHour,
+
+    COUNT(TransactionID) AS TransactionCount,
+
+    SUM(TransactionAmount) AS TransactionValue
+
+FROM transactions_clean
+
+GROUP BY
+    DayOfWeek,
+    TransactionHour
+
+ORDER BY
+    DayOfWeek,
+    TransactionHour;
+
+-------------------------------------------------
+5. Risk, Anomaly & Fraud Exposure
+-------------------------------------------------
+
+SELECT
+    CustomerID,
+
+    AVG(TransactionAmount) AS AverageTransaction
+
+FROM transactions_clean
+
+GROUP BY CustomerID;
+
+SELECT
+
+    t.TransactionID,
+    t.CustomerID,
+    t.TransactionAmount,
+    a.AverageTransaction
+
+FROM transactions_clean t
+
+JOIN
+(
+    SELECT
+        CustomerID,
+        AVG(TransactionAmount) AS AverageTransaction
+    FROM transactions_clean
+    GROUP BY CustomerID
+) a
+
+ON t.CustomerID = a.CustomerID;
+
+SELECT
+
+    t.TransactionID,
+    t.CustomerID,
+    t.TransactionAmount,
+    a.AverageTransaction,
+
+    CASE
+
+        WHEN t.TransactionAmount > 3 * a.AverageTransaction
+        THEN 'Potential Anomaly'
+
+        ELSE 'Normal'
+
+    END AS AnomalyFlag
+
+FROM transactions_clean t
+
+JOIN
+(
+    SELECT
+        CustomerID,
+        AVG(TransactionAmount) AS AverageTransaction
+
+    FROM transactions_clean
+
+    GROUP BY CustomerID
+
+) a
+
+ON t.CustomerID = a.CustomerID;
+
+SELECT
+
+    t.TransactionID,
+    t.CustomerID,
+    t.TransactionAmount,
+    t.CustAccountBalance,
+    a.AverageTransaction,
+
+    CASE
+        WHEN t.TransactionAmount > 3 * a.AverageTransaction
+        THEN 'Yes'
+        ELSE 'No'
+    END AS Above3xAverage,
+
+    CASE
+        WHEN t.CustAccountBalance > 0
+             AND t.TransactionAmount > 0.50 * t.CustAccountBalance
+        THEN 'Yes'
+        ELSE 'No'
+    END AS HighVsBalance
+
+FROM transactions_clean t
+
+JOIN
+(
+    SELECT
+        CustomerID,
+        AVG(TransactionAmount) AS AverageTransaction
+
+    FROM transactions_clean
+
+    GROUP BY CustomerID
+
+) a
+
+ON t.CustomerID = a.CustomerID;
+
+SELECT
+
+    t.TransactionID,
+    t.CustomerID,
+    t.TransactionAmount,
+    t.CustAccountBalance,
+
+    CASE
+        WHEN t.TransactionAmount > 3 * a.AverageTransaction
+        THEN 'Yes'
+        ELSE 'No'
+    END AS Above3xAverage,
+
+    CASE
+        WHEN t.CustAccountBalance > 0
+             AND t.TransactionAmount > 0.50 * t.CustAccountBalance
+        THEN 'Yes'
+        ELSE 'No'
+    END AS HighVsBalance,
+
+    CASE
+        WHEN CAST(t.TransactionTime / 10000 AS INTEGER)
+             BETWEEN 0 AND 4
+        THEN 'Yes'
+        ELSE 'No'
+    END AS OffHour
+
+FROM transactions_clean t
+
+JOIN
+(
+    SELECT
+        CustomerID,
+        AVG(TransactionAmount) AS AverageTransaction
+
+    FROM transactions_clean
+
+    GROUP BY CustomerID
+
+) a
+
+ON t.CustomerID = a.CustomerID;
