@@ -1,11 +1,15 @@
-# Transactions_Data_Analysis_Project
-This is an end-to-end project analysing transactions data from a bank to uncover key business insights using SQL and presenting the findings in a Power-BI Dashboard.
+📊 Banking Transactions Data Analysis
+An end-to-end data analytics project leveraging SQL and Power BI to evaluate 1M+ banking transactions across 884K+ customers. This analysis translates raw transactional data into actionable business intelligence across customer segmentation, revenue optimization, capacity planning, and risk management.
 
-• Evaluated 1M+ transactions across 884K+ customers to determine customer value and wealth segments, demographic/geographic growth hotspots, retention and churn-risk signals, peak transaction windows, and potential fraud/anomaly exposure.
+🛠️ Tech Stack & Analytical Techniques
+SQL: Data aggregation, JOINs, CTEs/subqueries, date-time transformations, and CASE WHEN logic.
 
-• Leveraged SQL (GROUP BY, JOINs, CASE WHEN, subqueries) and Power BI (DAX, heatmaps, scatter plots, KPI cards) to execute RFV and temporal trend analysis.
+Power BI & DAX: Custom measures, dynamic KPI cards, temporal trend analysis, scatter plots, and behavioral heatmaps.
 
-• Answered key business Qs such as:
+Methodologies: Recency-Frequency-Value (RFV) segmentation, demographic profiling, outlier/anomaly detection, and trend modeling.
+
+🎯 Business Impact
+• Delivered actionable insights to answer key business questions such as:
 
 Which customer wealth segments generate the most transaction activity, and where do we see high-balance customers with relatively high transaction velocity/spend?
 
